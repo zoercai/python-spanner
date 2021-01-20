@@ -273,12 +273,21 @@ class TestBackup(_BaseTest):
         api.create_backup.return_value = op_future
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
-        timestamp = self._make_timestamp()
+        version_timestamp = self._make_timestamp()
+        expire_timestamp = self._make_timestamp()
         backup = self._make_one(
-            self.BACKUP_ID, instance, database=self.DATABASE_NAME, expire_time=timestamp
+            self.BACKUP_ID,
+            instance,
+            database=self.DATABASE_NAME,
+            expire_time=expire_timestamp,
+            version_time=version_timestamp,
         )
 
-        backup_pb = Backup(database=self.DATABASE_NAME, expire_time=timestamp,)
+        backup_pb = Backup(
+            database=self.DATABASE_NAME,
+            expire_time=expire_timestamp,
+            version_time=version_timestamp,
+        )
 
         future = backup.create()
         self.assertIs(future, op_future)
@@ -437,6 +446,7 @@ class TestBackup(_BaseTest):
             name=self.BACKUP_NAME,
             database=self.DATABASE_NAME,
             expire_time=timestamp,
+            version_time=timestamp,
             create_time=timestamp,
             size_bytes=10,
             state=1,
@@ -452,6 +462,7 @@ class TestBackup(_BaseTest):
         self.assertEqual(backup.database, self.DATABASE_NAME)
         self.assertEqual(backup.expire_time, timestamp)
         self.assertEqual(backup.create_time, timestamp)
+        self.assertEqual(backup.version_time, timestamp)
         self.assertEqual(backup.size_bytes, 10)
         self.assertEqual(backup.state, Backup.State.CREATING)
         self.assertEqual(backup.referencing_databases, [])

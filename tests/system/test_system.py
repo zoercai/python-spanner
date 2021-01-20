@@ -672,9 +672,16 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         backup_id = "backup_id" + unique_resource_id("_")
         expire_time = datetime.utcnow() + timedelta(days=3)
         expire_time = expire_time.replace(tzinfo=UTC)
+        version_time = datetime.utcnow() - timedelta(days=5)
+        version_time = version_time.replace(tzinfo=UTC)
 
         # Create backup.
-        backup = instance.backup(backup_id, database=self._db, expire_time=expire_time)
+        backup = instance.backup(
+            backup_id,
+            database=self._db,
+            expire_time=expire_time,
+            version_time=version_time,
+        )
         operation = backup.create()
         self.to_delete.append(backup)
 
@@ -689,6 +696,7 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         self.assertEqual(self._db.name, backup._database)
         self.assertEqual(expire_time, backup.expire_time)
         self.assertIsNotNone(backup.create_time)
+        self.assertEqual(version_time, backup.version_time)
         self.assertIsNotNone(backup.size_bytes)
         self.assertIsNotNone(backup.state)
 
@@ -805,9 +813,14 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         instance = Config.INSTANCE
         expire_time_1 = datetime.utcnow() + timedelta(days=21)
         expire_time_1 = expire_time_1.replace(tzinfo=UTC)
+        version_time_1 = datetime.utcnow() - timedelta(days=5)
+        version_time_1 = version_time_1(tzinfo=UTC)
 
         backup1 = Config.INSTANCE.backup(
-            backup_id_1, database=self._dbs[0], expire_time=expire_time_1
+            backup_id_1,
+            database=self._dbs[0],
+            expire_time=expire_time_1,
+            version_time=version_time_1,
         )
 
         expire_time_2 = datetime.utcnow() + timedelta(days=1)
@@ -842,6 +855,13 @@ class TestBackupAPI(unittest.TestCase, _TestData):
 
         # List backups filtered by create time.
         filter_ = 'create_time > "{0}"'.format(
+            create_time_compare.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        )
+        for backup in instance.list_backups(filter_=filter_):
+            self.assertEqual(backup.name, backup2.name)
+
+        # List backups filtered by version time.
+        filter_ = 'version_time > "{0}"'.format(
             create_time_compare.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         )
         for backup in instance.list_backups(filter_=filter_):
