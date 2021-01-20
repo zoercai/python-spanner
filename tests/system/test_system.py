@@ -717,6 +717,80 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         backup.delete()
         self.assertFalse(backup.exists())
 
+    def test_backup_version_time_defaults_to_create_time(self):
+        from datetime import datetime
+        from datetime import timedelta
+        from pytz import UTC
+
+        instance = Config.INSTANCE
+        backup_id = "backup_id" + unique_resource_id("_")
+        expire_time = datetime.utcnow() + timedelta(days=3)
+        expire_time = expire_time.replace(tzinfo=UTC)
+
+        # Create backup.
+        backup = instance.backup(backup_id, database=self._db, expire_time=expire_time,)
+        operation = backup.create()
+        self.to_delete.append(backup)
+
+        # Check backup object.
+        backup.reload()
+        self.assertEqual(self._db.name, backup._database)
+        self.assertIsNotNone(backup.create_time)
+        self.assertEqual(backup.create_time, backup.version_time)
+
+        # Restore database to same instance.
+        restored_id = "restored_db" + unique_resource_id("_")
+        database = instance.database(restored_id)
+        self.to_drop.append(database)
+        operation = database.restore(source=backup)
+        operation.result()
+
+        database.drop()
+        backup.delete()
+        self.assertFalse(backup.exists())
+
+    def test_create_backup_invalid_version_time_past(self):
+        from datetime import datetime
+        from pytz import UTC
+
+        backup_id = "backup_id" + unique_resource_id("_")
+        expire_time = datetime.utcnow() + timedelta(days=3)
+        expire_time = expire_time.replace(tzinfo=UTC)
+        version_time = datetime.utcnow() - timedelta(days=10)
+        version_time = version_time.replace(tzinfo=UTC)
+
+        backup = Config.INSTANCE.backup(
+            backup_id,
+            database=self._db,
+            expire_time=expire_time,
+            version_time=version_time,
+        )
+
+        with self.assertRaises(exceptions.InvalidArgument):
+            op = backup.create()
+            op.result()
+
+    def test_create_backup_invalid_version_time_future(self):
+        from datetime import datetime
+        from pytz import UTC
+
+        backup_id = "backup_id" + unique_resource_id("_")
+        expire_time = datetime.utcnow() + timedelta(days=3)
+        expire_time = expire_time.replace(tzinfo=UTC)
+        version_time = datetime.utcnow() + timedelta(days=2)
+        version_time = version_time.replace(tzinfo=UTC)
+
+        backup = Config.INSTANCE.backup(
+            backup_id,
+            database=self._db,
+            expire_time=expire_time,
+            version_time=version_time,
+        )
+
+        with self.assertRaises(exceptions.InvalidArgument):
+            op = backup.create()
+            op.result()
+
     def test_restore_to_diff_instance(self):
         from datetime import datetime
         from datetime import timedelta
