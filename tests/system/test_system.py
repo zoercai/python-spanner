@@ -672,7 +672,7 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         backup_id = "backup_id" + unique_resource_id("_")
         expire_time = datetime.utcnow() + timedelta(days=3)
         expire_time = expire_time.replace(tzinfo=UTC)
-        version_time = datetime.utcnow() - timedelta(days=5)
+        version_time = datetime.utcnow() - timedelta(minutes=5)
         version_time = version_time.replace(tzinfo=UTC)
 
         # Create backup.
@@ -732,6 +732,12 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         operation = backup.create()
         self.to_delete.append(backup)
 
+        # Check metadata.
+        metadata = operation.metadata
+        self.assertEqual(backup.name, metadata.name)
+        self.assertEqual(self._db.name, metadata.database)
+        operation.result()
+
         # Check backup object.
         backup.reload()
         self.assertEqual(self._db.name, backup._database)
@@ -751,6 +757,7 @@ class TestBackupAPI(unittest.TestCase, _TestData):
 
     def test_create_backup_invalid_version_time_past(self):
         from datetime import datetime
+        from datetime import timedelta
         from pytz import UTC
 
         backup_id = "backup_id" + unique_resource_id("_")
@@ -772,6 +779,7 @@ class TestBackupAPI(unittest.TestCase, _TestData):
 
     def test_create_backup_invalid_version_time_future(self):
         from datetime import datetime
+        from datetime import timedelta
         from pytz import UTC
 
         backup_id = "backup_id" + unique_resource_id("_")
@@ -887,8 +895,8 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         instance = Config.INSTANCE
         expire_time_1 = datetime.utcnow() + timedelta(days=21)
         expire_time_1 = expire_time_1.replace(tzinfo=UTC)
-        version_time_1 = datetime.utcnow() - timedelta(days=5)
-        version_time_1 = version_time_1(tzinfo=UTC)
+        version_time_1 = datetime.utcnow() - timedelta(minutes=5)
+        version_time_1 = version_time_1.replace(tzinfo=UTC)
 
         backup1 = Config.INSTANCE.backup(
             backup_id_1,
