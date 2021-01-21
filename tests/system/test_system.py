@@ -600,6 +600,22 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         op1.result(30)  # raises on failure / timeout.
         op2.result(30)  # raises on failure / timeout.
 
+        # Add retention period for backups
+        retention_period = "7d"
+        ddl_statements = DDL_STATEMENTS + [
+            "ALTER DATABASE {}"
+            " SET OPTIONS (version_retention_period = '{}')".format(
+                cls.DATABASE_NAME, retention_period
+            )
+        ]
+        db = Config.INSTANCE.database(
+            cls.DATABASE_NAME, pool=pool, ddl_statements=ddl_statements
+        )
+        operation = db.update_ddl(ddl_statements)
+        # We want to make sure the operation completes.
+        operation.result(240)  # raises on failure / timeout.
+        db.reload()
+
         current_config = Config.INSTANCE.configuration_name
         same_config_instance_id = "same-config" + unique_resource_id("-")
         create_time = str(int(time.time()))
@@ -672,7 +688,7 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         backup_id = "backup_id" + unique_resource_id("_")
         expire_time = datetime.utcnow() + timedelta(days=3)
         expire_time = expire_time.replace(tzinfo=UTC)
-        version_time = datetime.utcnow() - timedelta(minutes=5)
+        version_time = datetime.utcnow() - timedelta(seconds=5)
         version_time = version_time.replace(tzinfo=UTC)
 
         # Create backup.
@@ -744,14 +760,6 @@ class TestBackupAPI(unittest.TestCase, _TestData):
         self.assertIsNotNone(backup.create_time)
         self.assertEqual(backup.create_time, backup.version_time)
 
-        # Restore database to same instance.
-        restored_id = "restored_db" + unique_resource_id("_")
-        database = instance.database(restored_id)
-        self.to_drop.append(database)
-        operation = database.restore(source=backup)
-        operation.result()
-
-        database.drop()
         backup.delete()
         self.assertFalse(backup.exists())
 

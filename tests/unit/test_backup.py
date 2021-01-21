@@ -266,6 +266,9 @@ class TestBackup(_BaseTest):
 
     def test_create_success(self):
         from google.cloud.spanner_admin_database_v1 import Backup
+        from datetime import datetime
+        from datetime import timedelta
+        from pytz import UTC
 
         op_future = object()
         client = _Client()
@@ -273,7 +276,8 @@ class TestBackup(_BaseTest):
         api.create_backup.return_value = op_future
 
         instance = _Instance(self.INSTANCE_NAME, client=client)
-        version_timestamp = self._make_timestamp()
+        version_timestamp = datetime.utcnow() - timedelta(minutes=5)
+        version_timestamp = version_timestamp.replace(tzinfo=UTC)
         expire_timestamp = self._make_timestamp()
         backup = self._make_one(
             self.BACKUP_ID,
