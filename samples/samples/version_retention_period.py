@@ -58,5 +58,7 @@ def create_database_with_version_retention_period(instance_id, database_id, rete
       db.database_id, db.version_retention_period(), db.earliest_version_time()
   ))
 
+  db.drop()
+
 # [END spanner_create_database_with_version_retention_period]
 
