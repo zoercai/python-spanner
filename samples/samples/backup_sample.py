@@ -48,8 +48,8 @@ def create_backup(instance_id, database_id, backup_id):
     # Get the name, create time and backup size.
     backup.reload()
     print(
-        "Backup {} from {} of size {} bytes was created at {}".format(
-            backup.name, backup.version_time, backup.size_bytes, backup.create_time
+        "Backup {} of size {} bytes was created at {} for version of database at {}".format(
+            backup.name, backup.size_bytes, backup.create_time, backup.version_time
         )
     )
 
@@ -79,7 +79,7 @@ def restore_database(instance_id, database_id, new_database_id, backup_id):
     new_database.reload()
     restore_info = new_database.restore_info
     print(
-        "Database {} restored to {} from backup {} with version time of {}.".format(
+        "Database {} restored to {} from backup {} with version time {}.".format(
             restore_info.backup_info.source_database,
             new_database_id,
             restore_info.backup_info.backup,
